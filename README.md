@@ -25,19 +25,53 @@ Assuming you have something like this in your composer.json file ( so it knows t
 
 The best way to explore / develop with this is by using a tool such as [ChromeiQL](https://chrome.google.com/webstore/detail/chromeiql/fkkiamalmpiidkljmicmjfbieiclmeij) That will show you the endpoints and arguments that are available.
 
+This is how a successfull query looks like in ChromeiQL:
+
+![https://raw.githubusercontent.com/balintsera/graphql-wp/fix/no-response/.readme.md/graphiql-query.png](https://raw.githubusercontent.com/balintsera/graphql-wp/fix/no-response/.readme.md/graphiql-query.png)
+
+###curl
+
+Currently the only one working solutions is to use curl:
+
+`curl http://127.0.0.1:8080/graphql -X POST -d query='{wp_post(ID: 1) {title }}'`
+
+This will actually return this result:
+
+`{"data":{"wp_post":{"title":"Hello world!"}}}%`
+
+This query:
+
+`curl http://127.0.0.1:8080/graphql -X POST -d query='{wp_query { posts(paged: 1 posts_per_page: 10)  { title, name } } }' `
+
+will return this response:
+
+`{"data":{"wp_query":{"posts":[{"title":"Hello world!","name":"hello-world"}]}}}%`
+
+When sending raw requests (eg. with Postman) be aware that new line is invalid in JSON, so send something like this:
+
+```json
+
+{
+  "query": "{\n    wp_query {\n        posts(paged: 1 posts_per_page: 10)  {\n            title\n            name\n            terms (taxonomy:\"category\") {\n                name\n                slug\n            }\n        }\n    }\n}"
+}
+
+```  
+
+Or remove the \n -s completely.
+
 ###wp_query
 This is designed to follow WordPress' existing WP Query functions.  So as a rule you can pass the same parameters as your can to [WP Query](https://codex.wordpress.org/Class_Reference/WP_Query)*.
 
-**In reality there are a lot of params you can pass to WP_Query, and I've only implemented the ones that I've needed so far. But adding more is trivial as the arguments are just passed directly to the get_posts function, so its just a matter of defining them in the schema.* 
+**In reality there are a lot of params you can pass to WP_Query, and I've only implemented the ones that I've needed so far. But adding more is trivial as the arguments are just passed directly to the get_posts function, so its just a matter of defining them in the schema.*
 
-    {"query":"{ 
-    	wp_query { 
-    		posts(paged: 1 posts_per_page: 10)  { 
-    			title 
-    			name 
-    			terms (taxonomy:\"category\") { 
-    				name 
-    				slug 
+    {"query":"{
+    	wp_query {
+    		posts(paged: 1 posts_per_page: 10)  {
+    			title
+    			name
+    			terms (taxonomy:\"category\") {
+    				name
+    				slug
     			}
     		}
     	}
@@ -60,12 +94,12 @@ Will give you
               ]
            } ...
 
-Also available on wp_query menu 
+Also available on wp_query menu
 
     {"query":
-	    "{ wp_query 
-		    { menu(name: \"Main Menu\")  { 
-			    title 
+	    "{ wp_query
+		    { menu(name: \"Main Menu\")  {
+			    title
 			    url
 			}
 		}
@@ -99,6 +133,7 @@ This is how I'm adding custom post types ( which have custom fields ) to my clie
 
 Where `$types` is a hash of the schema we are working with, so just add new items into this and you are good to go.
 
+```php
     use \Mohiohio\GraphQLWP\Schema;
 
     add_filter('graphql-wp/get_post_types', function($types) {
@@ -157,7 +192,7 @@ Where `$types` is a hash of the schema we are working with, so just add new item
             ]
         ];
         return $types;
-    }
-    
+    }    
     },10);
+```
 
